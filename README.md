@@ -1,7 +1,7 @@
-Redimensionator (UNSTABLE ALPHA)
-The Video Slit Scan Dimension Trader
+# Redimensionator (UNSTABLE ALPHA)
+## The Video Slit Scan Dimension Trader
 
-Copyleft 2011 
+&copy;opyleft 2011 
 Forrest Oliphant, Sembiki Interactive, http://sembiki.com/
 Cobbled together from Cinder examples and forum help. Thanks!
 
