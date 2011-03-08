@@ -2,7 +2,7 @@
  *
  * Redimensionator (UNSTABLE ALPHA)
  * The Video Slit Scan Dimension Trader
- 
+ *
  * Copyleft 2011 
  * Forrest Oliphant, Sembiki Interactive, http://sembiki.com/
  * Cobbled together from Cinder examples and forum help. Thanks!
@@ -48,10 +48,8 @@ public:
   
   void loadMovieFile( const std::string &path );
   
-  string toString(int number);
-  
-  qtime::MovieSurface  mMovie;
-  Surface              mSurface;
+  qtime::MovieSurface  inMovie;
+  Surface              inSurface;
   Surface              outSurface;
   Surface              previewSurface;
   qtime::MovieWriter   outMovie;
@@ -105,12 +103,12 @@ void Redimensionator::setup()
   loadMovieFile( inPath );
   
   // Get ready to scan
-  if(mMovie)
+  if(inMovie)
   {
-    mMovie.seekToStart();
-    mMovie.play();
-    mMovie.stop();
-    mMovie.seekToStart();
+    inMovie.seekToStart();
+    inMovie.play();
+    inMovie.stop();
+    inMovie.seekToStart();
     
     // Start scan thread
     std::thread thread(&Redimensionator::processFrames, this);
@@ -129,22 +127,22 @@ void Redimensionator::keyDown( KeyEvent event )
 void Redimensionator::loadMovieFile( const string &moviePath )
 {
   try {
-    mMovie = qtime::MovieSurface( moviePath );
+    inMovie = qtime::MovieSurface( moviePath );
     
-    console() << "Dimensions:" << mMovie.getWidth() << " x " << mMovie.getHeight() << std::endl;
-    console() << "Duration:  " << mMovie.getDuration() << " seconds" << std::endl;
-    console() << "Frames:    " << mMovie.getNumFrames() << std::endl;
-    console() << "Framerate: " << mMovie.getFramerate() << std::endl;
-    console() << "Alpha channel: " << mMovie.hasAlpha() << std::endl;		
-    console() << "Has audio: " << mMovie.hasAudio() << " Has visuals: " << mMovie.hasVisuals() << std::endl;
+    console() << "Dimensions:" << inMovie.getWidth() << " x " << inMovie.getHeight() << std::endl;
+    console() << "Duration:  " << inMovie.getDuration() << " seconds" << std::endl;
+    console() << "Frames:    " << inMovie.getNumFrames() << std::endl;
+    console() << "Framerate: " << inMovie.getFramerate() << std::endl;
+    console() << "Alpha channel: " << inMovie.hasAlpha() << std::endl;		
+    console() << "Has audio: " << inMovie.hasAudio() << " Has visuals: " << inMovie.hasVisuals() << std::endl;
     
-    inW = mMovie.getWidth();
-    inH = mMovie.getHeight();
-    inFrames = mMovie.getNumFrames();
+    inW = inMovie.getWidth();
+    inH = inMovie.getHeight();
+    inFrames = inMovie.getNumFrames();
     
     // Seems to crash when the array reaches a billion pixels on my MBP with 4GB RAM
     maxWidth = 1920;
-    while ((inW * inH * maxWidth) >= 1000000000)
+    while ((inW * inH * maxWidth) >= 500000000)
       maxWidth -= 20;
     
     // Figure out how many video files to make
@@ -172,7 +170,7 @@ void Redimensionator::fileDrop( FileDropEvent event )
 
 void Redimensionator::update()
 {
-  if( mMovie && outMovie)
+  if( inMovie && outMovie)
   {
     // Info
     std::stringstream info;
@@ -236,10 +234,15 @@ void Redimensionator::processFrames()
     frames = new Surface[outW];
     for (int i = 0; i < outW; ++i) {
       inFrame = i;
-      mMovie.seekToFrame(outIndex*maxWidth+i);
-      mSurface = mMovie.getSurface();
-      frames[i] = mSurface.clone();
-      previewSurface = mSurface.clone();
+      try {
+        inMovie.seekToFrame(outIndex*maxWidth+i);
+        inSurface = inMovie.getSurface();
+        frames[i] = inSurface.clone();
+      }
+      catch( ... ) {
+        console() << "Probably out of memory." << std::endl;
+      } 
+      previewSurface = inSurface.clone();
     }
     
     outSurface = Surface(outW, outH, SurfaceChannelOrder::RGB);
@@ -252,9 +255,9 @@ void Redimensionator::processFrames()
       for (int x = 0; x < outW; ++x) {
         inFrame = x;
         
-        mSurface = frames[x];
+        inSurface = frames[x];
         
-        outSurface.copyFrom(mSurface, Area( scanIndex, 0, scanIndex+1, outH ), Vec2i( x-scanIndex, 0 ) );
+        outSurface.copyFrom(inSurface, Area( scanIndex, 0, scanIndex+1, outH ), Vec2i( x-scanIndex, 0 ) );
       }
       
       // Write frame to new mov
